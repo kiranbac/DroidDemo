@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DefaultItemAnimator;
+import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.Menu;
@@ -36,13 +37,12 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mContext = this;
-
+        progressDialog = new ProgressDialog(mContext);
+        apiInterface = APIClient.getClient().create(ApiInterface.class);
         if (!isConnected(mContext)) {
             //Inform user about network connectivity
             Toast.makeText(mContext, R.string.network_connection_error, Toast.LENGTH_SHORT).show();
         } else {
-            progressDialog = new ProgressDialog(mContext);
-            apiInterface = APIClient.getClient().create(ApiInterface.class);
             getFactsData();
         }
     }
@@ -58,6 +58,9 @@ public class MainActivity extends AppCompatActivity {
 
                     factsList = (RecyclerView) findViewById(R.id.facts_list);
                     factsList.setLayoutManager(new LinearLayoutManager(mContext));
+                    DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(factsList.getContext(),
+                            new LinearLayoutManager(mContext).getOrientation());
+                    factsList.addItemDecoration(dividerItemDecoration);
                     factsList.setItemAnimator(new DefaultItemAnimator());
                     FactsListAdapter adapter = new FactsListAdapter(responseData, mContext);
                     factsList.setAdapter(adapter);
@@ -71,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<Facts> call, Throwable t) {
-
+                Toast.makeText(mContext, R.string.network_connection_error, Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -107,7 +110,13 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.refresh:
-                getFactsData();
+                if (!isConnected(mContext)) {
+                    //Inform user about network connectivity
+                    Toast.makeText(mContext, R.string.network_connection_error, Toast.LENGTH_SHORT).show();
+                } else {
+
+                    getFactsData();
+                }
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
