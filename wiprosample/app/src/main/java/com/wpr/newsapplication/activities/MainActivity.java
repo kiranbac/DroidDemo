@@ -1,5 +1,6 @@
 package com.wpr.newsapplication.activities;
 
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -9,6 +10,9 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.widget.Toast;
 
 import com.wpr.newsapplication.R;
@@ -25,6 +29,7 @@ public class MainActivity extends AppCompatActivity {
     private Context mContext;
     private RecyclerView factsList;
     private ApiInterface apiInterface;
+    private ProgressDialog progressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,15 +37,18 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         mContext = this;
 
-        if (isConnected(mContext)) {
+        if (!isConnected(mContext)) {
             //Inform user about network connectivity
             Toast.makeText(mContext, R.string.network_connection_error, Toast.LENGTH_SHORT).show();
+        } else {
+            progressDialog = new ProgressDialog(mContext);
+            apiInterface = APIClient.getClient().create(ApiInterface.class);
+            getFactsData();
         }
-        apiInterface = APIClient.getClient().create(ApiInterface.class);
-        getFactsData();
     }
 
     private void getFactsData() {
+        showDownloadProgress(progressDialog);
         Call<Facts> call = apiInterface.getFactsList();
         call.enqueue(new Callback<Facts>() {
             @Override
@@ -57,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
                     if (actionBar != null) {
                         actionBar.setTitle(responseData.getTitle());
                     }
+                    progressDialog.dismiss();
                 }
             }
 
@@ -78,5 +87,30 @@ public class MainActivity extends AppCompatActivity {
 
         return activeNetwork != null &&
                 activeNetwork.isConnectedOrConnecting();
+    }
+
+    public void showDownloadProgress(ProgressDialog progressDialog) {
+        progressDialog = progressDialog;
+        progressDialog.setCancelable(true);
+        progressDialog.setMessage("Loading data ...");
+        progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        progressDialog.show();
+    }
+
+
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.my_menu, menu);
+        return true;
+    }
+
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.refresh:
+                getFactsData();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 }
