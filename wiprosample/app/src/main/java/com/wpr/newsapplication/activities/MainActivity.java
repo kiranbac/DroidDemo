@@ -24,6 +24,7 @@ import com.wpr.newsapplication.adapter.FactsListAdapter;
 import com.wpr.newsapplication.models.Facts;
 import com.wpr.newsapplication.network.APIClient;
 import com.wpr.newsapplication.network.ApiInterface;
+import com.wpr.newsapplication.network.InternetConnected;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -53,13 +54,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void getFactsData() {
-        boolean isInternetconnected = false;
+        boolean isInternetConnected = false;
         try {
-            isInternetconnected = new InterConnected().execute().get();
+            isInternetConnected = new InternetConnected(mContext).execute().get();
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
         }
-        if (isInternetconnected) {
+        if (isInternetConnected) {
             showDownloadProgress(progressDialog);
             Call<Facts> call = apiInterface.getFactsList();
             call.enqueue(new Callback<Facts>() {
@@ -123,30 +124,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-
-    private class InterConnected extends AsyncTask<Void, Void, Boolean> {
-        @Override
-        protected Boolean doInBackground(Void... voids) {
-            try {
-                //Check for connectivity first
-                ConnectivityManager conManager = (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
-                NetworkInfo networkInfo = conManager.getActiveNetworkInfo();
-                if (networkInfo != null && networkInfo.isConnected()) {
-                    URL url = new URL("https://www.wipro.com/");
-                    HttpURLConnection httpConnection = (HttpURLConnection) url.openConnection();
-                    httpConnection.setConnectTimeout(20000);
-                    httpConnection.connect();
-                    if (httpConnection.getResponseCode() == HttpURLConnection.HTTP_OK) {
-                        return true;
-                    }
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-                return false;
-            }
-            return false;
-        }
-    }
 }
 
 
