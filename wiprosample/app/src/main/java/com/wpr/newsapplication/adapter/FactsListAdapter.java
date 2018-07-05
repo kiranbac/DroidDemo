@@ -8,9 +8,9 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 import com.wpr.newsapplication.R;
 import com.wpr.newsapplication.models.Facts;
@@ -37,8 +37,7 @@ public class FactsListAdapter extends RecyclerView.Adapter<FactsListAdapter.Data
     }
 
     @Override
-    public void onBindViewHolder(@NonNull DataViewHolder holder, int position) {
-        System.out.println("data" + factsList.getRows().get(position).getTitle());
+    public void onBindViewHolder(@NonNull final DataViewHolder holder, int position) {
         if (!TextUtils.isEmpty(factsList.getRows().get(position).getTitle())) {
             holder.factTitle.setText(factsList.getRows().get(position).getTitle());
         } else {
@@ -50,8 +49,21 @@ public class FactsListAdapter extends RecyclerView.Adapter<FactsListAdapter.Data
             holder.factDesc.setText(R.string.desc);
         }
         if (!TextUtils.isEmpty(factsList.getRows().get(position).getImageHref())) {
-            Picasso.with(mContext).load(factsList.getRows().get(position).getImageHref()).into(
-                    holder.factImage);
+
+            Picasso.get()
+                    .load(factsList.getRows().get(position).getImageHref())
+                    .error(mContext.getResources().getDrawable(R.drawable.ic_image))
+
+                    .into(holder.factImage,new Callback() {
+                        @Override
+                        public void onSuccess() {
+                        }
+
+                        @Override
+                        public void onError(Exception ex) {
+                            holder.factImage.setImageDrawable(mContext.getResources().getDrawable(R.drawable.ic_image));
+                        }
+                    });
         } else {
             holder.factImage.setImageDrawable(mContext.getResources().getDrawable(R.drawable.ic_image));
         }
@@ -65,14 +77,12 @@ public class FactsListAdapter extends RecyclerView.Adapter<FactsListAdapter.Data
     public class DataViewHolder extends RecyclerView.ViewHolder {
         TextView factTitle, factDesc;
         ImageView factImage;
-        RelativeLayout factsDescRelativeLayout;
 
-        public DataViewHolder(View itemView) {
+        DataViewHolder(View itemView) {
             super(itemView);
-            factTitle = (TextView) itemView.findViewById(R.id.fact_title_text_view);
-            factDesc = (TextView) itemView.findViewById(R.id.fact_desc_text);
-            factImage = (ImageView) itemView.findViewById(R.id.fact_image);
-            factsDescRelativeLayout = (RelativeLayout) itemView.findViewById(R.id.fact_desc_relative_layout);
+            factTitle = itemView.findViewById(R.id.fact_title_text_view);
+            factDesc = itemView.findViewById(R.id.fact_desc_text);
+            factImage = itemView.findViewById(R.id.fact_image);
         }
     }
 }

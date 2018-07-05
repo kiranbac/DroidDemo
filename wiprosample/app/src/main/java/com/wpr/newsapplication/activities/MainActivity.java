@@ -5,6 +5,7 @@ import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DefaultItemAnimator;
@@ -39,62 +40,51 @@ public class MainActivity extends AppCompatActivity {
         mContext = this;
         progressDialog = new ProgressDialog(mContext);
         apiInterface = APIClient.getClient().create(ApiInterface.class);
-        if (!isConnected(mContext)) {
-            //Inform user about network connectivity
-            Toast.makeText(mContext, R.string.network_connection_error, Toast.LENGTH_SHORT).show();
-        } else {
-            getFactsData();
-        }
+        getFactsData();
     }
 
     private void getFactsData() {
-        showDownloadProgress(progressDialog);
-        Call<Facts> call = apiInterface.getFactsList();
-        call.enqueue(new Callback<Facts>() {
-            @Override
-            public void onResponse(Call<Facts> call, Response<Facts> response) {
-                Facts responseData = response.body();
-                if (response.isSuccessful()) {
+        if (isInternetConnected(mContext)) {
+            showDownloadProgress(progressDialog);
+            Call<Facts> call = apiInterface.getFactsList();
+            call.enqueue(new Callback<Facts>() {
+                @Override
+                @NonNull
+                public void onResponse(@NonNull Call<Facts> call,@NonNull Response<Facts> response) {
+                    Facts responseData = response.body();
+                    if (response.isSuccessful()) {
 
-                    factsList = (RecyclerView) findViewById(R.id.facts_list);
-                    factsList.setLayoutManager(new LinearLayoutManager(mContext));
-                    DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(factsList.getContext(),
-                            new LinearLayoutManager(mContext).getOrientation());
-                    factsList.addItemDecoration(dividerItemDecoration);
-                    factsList.setItemAnimator(new DefaultItemAnimator());
-                    FactsListAdapter adapter = new FactsListAdapter(responseData, mContext);
-                    factsList.setAdapter(adapter);
-                    ActionBar actionBar = getSupportActionBar();
-                    if (actionBar != null) {
-                        actionBar.setTitle(responseData.getTitle());
+                        factsList =  findViewById(R.id.facts_list);
+                        factsList.setLayoutManager(new LinearLayoutManager(mContext));
+                        DividerItemDecoration divider = new DividerItemDecoration(factsList.getContext(),
+                                new LinearLayoutManager(mContext).getOrientation());
+                        factsList.addItemDecoration(divider);
+                        factsList.setItemAnimator(new DefaultItemAnimator());
+                        FactsListAdapter adapter = new FactsListAdapter(responseData, mContext);
+                        factsList.setAdapter(adapter);
+                        ActionBar actionBar = getSupportActionBar();
+                        if (actionBar != null) {
+                            actionBar.setTitle(responseData.getTitle()+R.string.empty_string);
+                        }
+                        progressDialog.dismiss();
                     }
-                    progressDialog.dismiss();
                 }
-            }
 
-            @Override
-            public void onFailure(Call<Facts> call, Throwable t) {
-                Toast.makeText(mContext, R.string.network_connection_error, Toast.LENGTH_SHORT).show();
-            }
-        });
-
+                @Override
+                public void onFailure(@NonNull Call<Facts>  call, Throwable t) {
+                    Toast.makeText(mContext, R.string.network_connection_error, Toast.LENGTH_SHORT).show();
+                }
+            });
+        } else {
+            //Inform user about network connectivity
+            Toast.makeText(mContext, R.string.network_connection_error, Toast.LENGTH_SHORT).show();
+        }
     }
 
-
-    public boolean isConnected(Context context) {
-        //Checking for network connectivity
-        ConnectivityManager cm = (ConnectivityManager) this.getSystemService(
-                Context.CONNECTIVITY_SERVICE);
-
-        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-
-        return activeNetwork != null &&
-                activeNetwork.isConnectedOrConnecting();
-    }
 
     public void showDownloadProgress(ProgressDialog progressDialog) {
         progressDialog = progressDialog;
-        progressDialog.setCancelable(true);
+        progressDialog.setCancelable(false);
         progressDialog.setMessage("Loading data ...");
         progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
         progressDialog.show();
@@ -110,16 +100,18 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.refresh:
-                if (!isConnected(mContext)) {
-                    //Inform user about network connectivity
-                    Toast.makeText(mContext, R.string.network_connection_error, Toast.LENGTH_SHORT).show();
-                } else {
-
-                    getFactsData();
-                }
+                getFactsData();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
     }
+
+    public boolean isInternetConnected(Context context) {
+        //Checking network connectivity
+        ConnectivityManager conManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = conManager.getActiveNetworkInfo();
+        return (networkInfo != null && networkInfo.isConnected());
+    }
+
 }
