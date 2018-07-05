@@ -4,6 +4,7 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.ActionBar;
@@ -12,6 +13,7 @@ import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -22,6 +24,12 @@ import com.wpr.newsapplication.adapter.FactsListAdapter;
 import com.wpr.newsapplication.models.Facts;
 import com.wpr.newsapplication.network.APIClient;
 import com.wpr.newsapplication.network.ApiInterface;
+
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.InetAddress;
+import java.net.URL;
+import java.util.concurrent.ExecutionException;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -41,20 +49,27 @@ public class MainActivity extends AppCompatActivity {
         progressDialog = new ProgressDialog(mContext);
         apiInterface = APIClient.getClient().create(ApiInterface.class);
         getFactsData();
+
     }
 
     private void getFactsData() {
-        if (isInternetConnected(mContext)) {
+        boolean isInternetconnected = false;
+        try {
+            isInternetconnected = new InterConnected().execute().get();
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
+        if (isInternetconnected) {
             showDownloadProgress(progressDialog);
             Call<Facts> call = apiInterface.getFactsList();
             call.enqueue(new Callback<Facts>() {
                 @Override
                 @NonNull
-                public void onResponse(@NonNull Call<Facts> call,@NonNull Response<Facts> response) {
+                public void onResponse(@NonNull Call<Facts> call, @NonNull Response<Facts> response) {
                     Facts responseData = response.body();
                     if (response.isSuccessful()) {
 
-                        factsList =  findViewById(R.id.facts_list);
+                        factsList = findViewById(R.id.facts_list);
                         factsList.setLayoutManager(new LinearLayoutManager(mContext));
                         DividerItemDecoration divider = new DividerItemDecoration(factsList.getContext(),
                                 new LinearLayoutManager(mContext).getOrientation());
@@ -64,14 +79,14 @@ public class MainActivity extends AppCompatActivity {
                         factsList.setAdapter(adapter);
                         ActionBar actionBar = getSupportActionBar();
                         if (actionBar != null) {
-                            actionBar.setTitle(responseData.getTitle()+R.string.empty_string);
+                            actionBar.setTitle(responseData.getTitle());
                         }
                         progressDialog.dismiss();
                     }
                 }
 
                 @Override
-                public void onFailure(@NonNull Call<Facts>  call, Throwable t) {
+                public void onFailure(@NonNull Call<Facts> call, @NonNull Throwable t) {
                     Toast.makeText(mContext, R.string.network_connection_error, Toast.LENGTH_SHORT).show();
                 }
             });
@@ -107,11 +122,31 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public boolean isInternetConnected(Context context) {
-        //Checking network connectivity
-        ConnectivityManager conManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo networkInfo = conManager.getActiveNetworkInfo();
-        return (networkInfo != null && networkInfo.isConnected());
-    }
 
+
+    private class InterConnected extends AsyncTask<Void, Void, Boolean> {
+        @Override
+        protected Boolean doInBackground(Void... voids) {
+            try {
+                //Check for connectivity first
+                ConnectivityManager conManager = (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+                NetworkInfo networkInfo = conManager.getActiveNetworkInfo();
+                if (networkInfo != null && networkInfo.isConnected()) {
+                    URL url = new URL("https://www.wipro.com/");
+                    HttpURLConnection httpConnection = (HttpURLConnection) url.openConnection();
+                    httpConnection.setConnectTimeout(20000);
+                    httpConnection.connect();
+                    if (httpConnection.getResponseCode() == HttpURLConnection.HTTP_OK) {
+                        return true;
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                return false;
+            }
+            return false;
+        }
+    }
 }
+
+

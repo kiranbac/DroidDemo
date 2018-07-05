@@ -19,14 +19,14 @@ public class APIClient {
 
         HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
         interceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
-        OkHttpClient client = new OkHttpClient.Builder().addInterceptor(interceptor).readTimeout(60,
-                TimeUnit.SECONDS).connectTimeout(60, TimeUnit.SECONDS).build();
+        OkHttpClient httpClient = new OkHttpClient.Builder().addInterceptor(interceptor).readTimeout(30,
+                TimeUnit.SECONDS).connectTimeout(30, TimeUnit.SECONDS).build();
 
         if (retrofit == null) {
             retrofit = new Retrofit.Builder()
                     .baseUrl(baseURL)
                     .addConverterFactory(GsonConverterFactory.create())
-                    .client(client)
+                    .client(httpClient)
                     .build();
         }
         return retrofit;
